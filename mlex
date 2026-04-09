@@ -1,0 +1,90 @@
+# ================================
+# IMPORT LIBRARIES
+# ================================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+# ================================
+# LOAD DATASET
+# ================================
+df = pd.read_csv("abalone.csv")
+print(df.head())
+
+# ================================
+# ENCODING
+# ================================
+le = LabelEncoder()
+df['Sex_label'] = le.fit_transform(df['Sex'])
+df = pd.get_dummies(df, columns=['Sex'])
+
+# ================================
+# ================================
+# 1. SIMPLE LINEAR REGRESSION
+# ================================
+# ================================
+print("\n===== SIMPLE LINEAR REGRESSION =====")
+
+X_simple = df[['Length']]   # single feature (IMPORTANT: double brackets)
+y = df['Rings']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_simple, y, test_size=0.2, random_state=42
+)
+
+model_simple = LinearRegression()
+model_simple.fit(X_train, y_train)
+
+y_pred_simple = model_simple.predict(X_test)
+
+print("MSE:", mean_squared_error(y_test, y_pred_simple))
+print("MAE:", mean_absolute_error(y_test, y_pred_simple))
+print("R2 Score:", r2_score(y_test, y_pred_simple))
+
+print("Coefficient:", model_simple.coef_)
+print("Intercept:", model_simple.intercept_)
+
+# ================================
+# ================================
+# 2. MULTIPLE LINEAR REGRESSION
+# ================================
+# ================================
+print("\n===== MULTIPLE LINEAR REGRESSION =====")
+
+# Feature Engineering
+df['Volume'] = df['Length'] * df['Diameter'] * df['Height']
+
+X = df.drop(columns=['Rings'])
+y = df['Rings']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("MSE:", mean_squared_error(y_test, y_pred))
+print("MAE:", mean_absolute_error(y_test, y_pred))
+print("R2 Score:", r2_score(y_test, y_pred))
+
+print("Coefficients:", model.coef_)
+print("Intercept:", model.intercept_)
+
+# ================================
+# EFFECT OF SHELL WEIGHT
+# ================================
+feature_name = "Shell weight"
+
+if feature_name in X.columns:
+    index = list(X.columns).index(feature_name)
+    effect = model.coef_[index]
+    print(f"\nIf Shell weight increases by 1 unit, Rings change by {effect}")
