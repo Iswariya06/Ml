@@ -1,0 +1,191 @@
+/*
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^0.13.6
+  geolocator: ^10.1.0
+
+  api key: dfc14590e25a0c7821e46dd84d1f427b
+*/  
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: WeatherPage(),
+    );
+  }
+}
+
+class WeatherPage extends StatefulWidget {
+  @override
+  _WeatherPageState createState() => _WeatherPageState();
+}
+
+class _WeatherPageState extends State<WeatherPage> {
+  String city = "";
+  double temp = 0;
+  String condition = "";
+  bool loading = true;
+
+  TextEditingController cityController = TextEditingController();
+
+  final apiKey = "dfc14590e25a0c7821e46dd84d1f427b";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWeatherByLocation();
+  }
+
+  // 📍 Get Location
+  Future<Position> getLocation() async {
+    await Geolocator.requestPermission();
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+  }
+
+  // 🌐 Weather by Location
+  Future<void> fetchWeatherByLocation() async {
+    setState(() => loading = true);
+
+    Position pos = await getLocation();
+
+    final url =
+        "https://api.openweathermap.org/data/2.5/weather?lat=${pos.latitude}&lon=${pos.longitude}&units=metric&appid=$apiKey";
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      setState(() {
+        city = data['name'];
+        temp = data['main']['temp'];
+        condition = data['weather'][0]['main'];
+        loading = false;
+      });
+    }
+  }
+
+  // 🔍 Weather by City
+  Future<void> fetchWeatherByCity(String cityName) async {
+    if (cityName.isEmpty) return;
+
+    setState(() => loading = true);
+
+    final url =
+        "https://api.openweathermap.org/data/2.5/weather?q=$cityName&units=metric&appid=$apiKey";
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      setState(() {
+        city = data['name'];
+        temp = data['main']['temp'];
+        condition = data['weather'][0]['main'];
+        loading = false;
+      });
+    } else {
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("City not found")),
+      );
+    }
+  }
+
+  // 🌦️ Icon
+  IconData getIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case "clouds":
+        return Icons.cloud;
+      case "rain":
+        return Icons.beach_access;
+      case "clear":
+        return Icons.wb_sunny;
+      case "thunderstorm":
+        return Icons.flash_on;
+      case "snow":
+        return Icons.ac_unit;
+      default:
+        return Icons.wb_cloudy;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Weather App"),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: loading
+            ? CircularProgressIndicator()
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(getIcon(condition), size: 80),
+                  SizedBox(height: 20),
+
+                  Text(
+                    city,
+                    style:
+                        TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+
+                  Text(
+                    "${temp.toStringAsFixed(1)}°C",
+                    style:
+                        TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                  ),
+
+                  Text(condition, style: TextStyle(fontSize: 20)),
+
+                  SizedBox(height: 20),
+
+                  // 🔍 Search Field
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: TextField(
+                      controller: cityController,
+                      decoration: InputDecoration(
+                        labelText: "Enter City",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+
+                  // Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: fetchWeatherByLocation,
+                        child: Text("My Location"),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          fetchWeatherByCity(cityController.text);
+                        },
+                        child: Text("Search"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
