@@ -1,0 +1,180 @@
+/*
+in pubspec.yaml replace dependencies with this:
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^0.13.6
+*/
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: MemePage(),
+    );
+  }
+}
+
+class MemePage extends StatefulWidget {
+  @override
+  _MemePageState createState() => _MemePageState();
+}
+
+class _MemePageState extends State<MemePage> {
+  String imageUrl = "";
+  TextEditingController topController = TextEditingController();
+  TextEditingController bottomController = TextEditingController();
+
+  // Fetch Meme
+  Future<void> fetchMeme() async {
+    final response =
+        await http.get(Uri.parse("https://meme-api.com/gimme"));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        imageUrl = data['url'];
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMeme();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Meme Generator"),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          SizedBox(height: 10),
+
+          // Meme Area
+          Expanded(
+            child: imageUrl.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : Container(
+                    color: Colors.black,
+                    child: Stack(
+                      children: [
+                        // Full visible image
+                        Positioned.fill(
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                        // Top Text
+                        Positioned(
+                          top: 20,
+                          left: 10,
+                          right: 10,
+                          child: Text(
+                            topController.text,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 26,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black,
+                                  blurRadius: 6,
+                                  offset: Offset(2, 2),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Bottom Text
+                        Positioned(
+                          bottom: 20,
+                          left: 10,
+                          right: 10,
+                          child: Text(
+                            bottomController.text,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 26,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black,
+                                  blurRadius: 6,
+                                  offset: Offset(2, 2),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+
+          // Text Inputs
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: topController,
+                  decoration: InputDecoration(
+                    labelText: "Top Text",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                SizedBox(height: 8),
+                TextField(
+                  controller: bottomController,
+                  decoration: InputDecoration(
+                    labelText: "Bottom Text",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+          ),
+
+          // Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: fetchMeme,
+                child: Text("New Meme"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {});
+                },
+                child: Text("Generate"),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+}
